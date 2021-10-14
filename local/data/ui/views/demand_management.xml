@@ -1,0 +1,284 @@
+<dashboard script="loadjs.js">
+  <label>Demand Management</label>
+  <search id="createDemand" depends="$tok_create_demand$, $tok_demand_id$, $tok_plant_id$, $tok_primary_contact$, $tok_primary_contact_email$, $tok_secondary_contact$, $tok_secondary_contact_email$, $tok_business_unit$, $tok_iso_contact$, $tok_cism_group_name$, $tok_demand_summary$, $tok_main_objectives$, $tok_requested_delivery_date$, $tok_additional_statements$">
+    <query>
+      | inputlookup dm_lookup | append [stats count
+      | eval demand_id= "$tok_demand_id$"
+      | eval request_date= now()
+      | eval plant_id= "$tok_plant_id$"
+      | eval primary_contact= "$tok_primary_contact$"
+      | eval primary_contact_email= "$tok_primary_contact_email$"
+      | eval secondary_contact= "$tok_secondary_contact$"
+      | eval secondary_contact_email= "$tok_secondary_contact_email$"
+      | eval business_unit= "$tok_business_unit$"
+      | eval iso_contact= "$tok_iso_contact$"
+      | eval cism_group= "$tok_cism_group_name$"
+      | eval demand_summary= "$tok_demand_summary$"
+      | eval main_objectives= "$tok_main_objectives$"
+      | eval requested_delivery_date= "$tok_requested_delivery_date$"
+      | eval additional_statements= "$tok_additional_statements$"
+      | eval is_delivered= "no"
+      ] | table  is_delivered, additional_statements, business_domain, business_unit, cism_group, cost_center, demand_id, demand_summary, iso_contact, main_objectives, plant_id, primary_contact, primary_contact_email, request_date, requested_delivery_date, secondary_contact, secondary_contact_email
+      | outputlookup dm_lookup 
+    </query>
+  </search>
+  <search id="updateDemand" depends="$tok_update_demand$, $tok_demand_id$, $tok_plant_id$, $tok_primary_contact$, $tok_primary_contact_email$, $tok_secondary_contact$, $tok_secondary_contact_email$, $tok_business_unit$, $tok_iso_contact$, $tok_cism_group_name$, $tok_demand_summary$, $tok_main_objectives$, $tok_requested_delivery_date$, $tok_additional_statements$, $tok_demand_key$">
+    <query>
+      | inputlookup dm_lookup |eval key=_key | where key="$tok_demand_key$" 
+      | eval demand_id= "$tok_demand_id$"
+      | eval request_date= now()
+      | eval plant_id= "$tok_plant_id$"
+      | eval primary_contact= "$tok_primary_contact$"
+      | eval primary_contact_email= "$tok_primary_contact_email$"
+      | eval secondary_contact= "$tok_secondary_contact$"
+      | eval secondary_contact_email= "$tok_secondary_contact_email$"
+      | eval business_unit= "$tok_business_unit$"
+      | eval iso_contact= "$tok_iso_contact$"
+      | eval cism_group= "$tok_cism_group_name$"
+      | eval demand_summary= "$tok_demand_summary$"
+      | eval main_objectives= "$tok_main_objectives$"
+      | eval requested_delivery_date= "$tok_requested_delivery_date$"
+      | eval additional_statements= "$tok_additional_statements$"
+      | eval is_delivered= "no"
+      | outputlookup dm_lookup append=t
+    </query>
+  </search>
+  <search id="createDemandInfra" depends="$tok_create$, $tok_demand_id$, $tok_product_platform$, $tok_version$, $tok_no_of_devices$, $tok_device_type$, $tok_estd_log_size_gb$">
+    <query>
+      | inputlookup dm_infra_lookup | append [stats count
+      | eval demand_id = "$tok_demand_id$"
+      | eval product_platform = "$tok_product_platform$"
+      | eval version = "$tok_version$"
+      | eval no_of_devices = "$tok_no_of_devices$"
+      | eval device_type = "$tok_device_type$"
+      | eval estd_log_size_gb = "$tok_estd_log_size_gb$" 
+      ] | table demand_id, product_platform, version, no_of_devices, device_type, estd_log_size_gb
+      | outputlookup dm_infra_lookup
+    </query>
+  </search>
+  <search id="updateDemandInfra" depends="$tok_update$, $tok_infra_key$, $tok_demand_id$, $tok_product_platform$, $tok_version$, $tok_no_of_devices$, $tok_device_type$, $tok_estd_log_size_gb$">
+    <query>
+      | inputlookup dm_infra_lookup | eval key=_key | WHERE key="$tok_infra_key$"
+      | eval demand_id = "$tok_demand_id$"
+      | eval product_platform = "$tok_product_platform$"
+      | eval version = "$tok_version$"
+      | eval no_of_devices = "$tok_no_of_devices$"
+      | eval device_type = "$tok_device_type$"
+      | eval estd_log_size_gb = "$tok_estd_log_size_gb$" 
+      | outputlookup dm_infra_lookup append=t
+    </query>
+  </search>
+  <search id="deleteDemandInfra" depends="$tok_delete_key$">
+    <query>
+      | inputlookup dm_infra_lookup | eval key=_key | WHERE NOT key="$tok_delete_key$"
+      | outputlookup dm_infra_lookup
+    </query>
+  </search>
+    <search id="createSpInfra" depends="$tok_sp_create$, $tok_demand_id$, $tok_requester$">
+    <query>
+      | inputlookup dm_splunk_infra_lookup| search demand_id="$tok_demand_id$" | table provisioned_hostname, provisioned_ip, splunk_component, cpu_cores, ram, storage_tb, os | sendemail to="$tok_requester$" cc="csc-demand@daimler.com,dw_623-siem-engineering-team_siem-engineering-team@daimler.com" subject="Test: Splunk Infra Requirement for Demand ID: $tok_demand_id$" message="Infrastructure requirement for your Splunk instance. If you like to revise the details in the demand, please update in the portal using demand ID: $tok_demand_id$" format=table inline=true sendresults=true
+    </query>
+  </search>
+  <row id="tabs">
+	<panel>
+		<html>
+		<ul id="tabs" class="nav nav-tabs">
+			<li class="active">
+				<a href="#first" class="toggle-tab" data-toggle="tab" data-elements="landing_page">Landing Page</a>
+			</li>
+			<li>
+				<a href="#second" class="toggle-tab" data-toggle="tab" data-elements="demand_page">Demand Details</a>
+			</li>
+			<li>
+				<a href="#third" class="toggle-tab" data-toggle="tab" data-elements="spinfra_page">Splunk Infra Requirements</a>
+			</li>
+		</ul>
+		</html>
+	</panel>
+  </row>
+  <row id="landing_page">
+    <panel>
+    <html>
+      <form id="first">
+        <div>
+          <h1>SALM Demands</h1>
+        	<label for="old_demand_id">Demand ID</label>
+        	<input style="width: 45%" type="text" name="old_demand_id"/>
+        </div>
+        <div>
+          <button id="updateDemandButton">Update Demand</button>
+        </div>
+      </form>
+      <style>.btn-primary { margin: 5px 10px 5px 0; }</style>
+      <a href="" id="changetabbutton" class="btn btn-primary">New Demand</a>
+      <p></p>
+      <iframe src="/static/app/DemandManagement/CSC.html" width="100%" height="700">&gt;</iframe>
+    </html>
+    </panel>
+  </row>
+  <row id="demand_page">
+    <panel id="demandFormPanel">
+      <html>
+        <form id="demand">
+          <div>
+          	<label for="form_demand_id">Demand ID</label>
+          	<input style="width: 45%" type="text" name="form_demand_id"/>
+          </div>
+          <div>
+          	<label for="form_plant_id">Plant ID</label>
+          	<input id="numbers_only" style="width: 45%" type="text" name="form_plant_id"/>
+          </div>
+          <div>
+          	<label for="form_primary_contact">Primary contact</label>
+          	<input style="width: 45%" type="text" name="form_primary_contact"/>
+          </div>
+          <div>
+          	<label for="form_primary_contact_email">Primary Contact E-Mail</label>
+          	<input id="email_only" style="width: 45%" type="text" name="form_primary_contact_email"/>
+          </div>
+          <div>
+          	<label for="form_secondary_contact">Secondary contact</label>
+          	<input style="width: 45%" type="text" name="form_secondary_contact"/>
+          </div>
+          <div>
+          	<label for="form_secondary_contact_email">Secondary Contact E-mail</label>
+          	<input id="email_only" style="width: 45%" type="text" name="form_secondary_contact_email"/>
+          </div>
+          <div>
+          	<label for="form_business_unit">Business Unit</label>
+          	<input style="width: 45%" type="text" name="form_business_unit"/>
+          </div>
+          <div>
+          	<label for="form_iso_contact">ISO Contact</label>
+          	<input style="width: 45%" type="text" name="form_iso_contact"/>
+          </div>
+          <div>
+          	<label for="form_cism_group_name">CISM Group Name</label>
+          	<input style="width: 45%" type="text" name="form_cism_group_name"/>
+          </div>
+          <div>
+          	<label for="form_demand_summary">Demand Summary</label>
+          	<textarea style="width: 45%" name="form_demand_summary" rows="5"/>
+          </div>
+          <div>
+          	<label for="form_main_objectives">Main Objectives</label>
+          	<textarea style="width: 45%" name="form_main_objectives" rows="5"/>
+          </div>
+          <div>
+          	<label for="form_requested_delivery_date">Planned Start Date</label>
+          	<input id="date" style="width: 45%" type="text" name="form_requested_delivery_date"/>
+          </div>
+          <!--<div>
+          	<label for="form_funding_cost_center">Funding Cost Center(s)</label>
+          	<input id="numbers_only" style="width: 45%" type="text" name="form_funding_cost_center"/>
+          </div>
+          <div>
+          	<label for="form_business_domain">Business Domain</label>
+          	<input style="width: 45%" type="text" name="form_business_domain"/>
+          </div>-->
+          <div>
+          	<label for="form_additional_statements">Additional Statements</label>
+          	<textarea style="width: 45%" name="form_additional_statements" rows="5"/>
+          </div>
+          <input type="hidden" name="demand_key"/>
+          <div id="errorwarn">
+            
+          </div>
+          <div>
+            <button id="submitButton">Submit</button>
+          </div>
+        </form>
+      </html>
+    </panel>
+    <panel id="infoPanel" depends="$tok_demand_id$">
+      <title>Log Source Information</title>
+      <html>
+        <row>
+          <form id="infra">
+            <input type="hidden" name="form_demand_id" value=""/>
+            <div>Device/Product/Platform:</div>
+              <input name="form_product_platform" list="form_product_platform" placeholder="Select Type"/>
+              <datalist id="form_product_platform">
+                <option value="Windows Servers ‐ HIGH EPS"/>
+                <option value="Windows Servers ‐ MED EPS"/>
+                <option value="Windows Servers / Desktops ‐ LOW EPS"/>
+                <option value="Windows AD Servers"/>
+                <option value="Linux / Unix Servers"/>
+                <option value="Mainframe / Midrange"/>
+                <option value="Network Routers"/>
+                <option value="Network Switches"/>
+                <option value="Network Switches (NetFlow / Jflow / S‐Flow)"/>
+                <option value="Network Wireless LAN"/>
+                <option value="Network Load‐Balancers"/>
+                <option value="Other Network Devices"/>
+                <option value="Network Firewalls (Check Point ‐ Internal)"/>
+                <option value="Network Firewalls (Cisco - Internal)"/>
+                <option value="Network Firewalls (Check Point ‐ DMZ)"/>
+                <option value="Network Firewalls (Cisco ‐ DMZ)"/>
+                <option value="Network IPS/IDS"/>
+                <option value="Network VPN"/>
+                <option value="Network AntiSpam"/>
+                <option value="Network Web Proxy"/>
+                <option value="Other Security Devices"/>
+                <option value="Web Servers (IIS, Apache, Tomcat)"/>
+                <option value="Database (MSSQL, Oracle, Sybase - indicate # of instances)"/>
+                <option value="Email Servers (Exchange, Sendmail, BES, etc)"/>
+                <option value="AntiVirus / DLP Server(200000 clients)"/>
+                <option value="Other Applications"/>
+              </datalist>
+              <label for="form_version">Version</label>
+              <input style="width: 45%" type="text" name="form_version"/>
+              <label for="form_no_of_devices">Number of devices</label>
+              <input style="width: 45%" id="numbers_only" type="text" name="form_no_of_devices"/>
+              <label for="form_estd_log_size_gb">Logs in GB/Day (Estimated)</label>
+              <input style="width: 45%" id="numbers_0_100_step001" type="text" name="form_estd_log_size_gb"/>
+              <input type="hidden" name="infra_key"/>
+            <div>
+              <button id="addDevice">Add Device</button>
+            </div>
+              
+          </form>
+            
+        </row>
+        <row>
+          <style>.btn-primary { margin: 5px 10px 5px 0; }</style>
+          <a href="" id="finishbutton" class="btn btn-primary">Finish</a>
+        </row>
+        <row>
+          <table id="infraTable">
+            
+          </table>
+        </row>
+      </html>
+    </panel>
+  </row>
+  <row id="spinfra_page">
+    <panel>
+      <html>
+        <row>
+          <form>
+            <label for="form_totalgb">Log size in GB(s)/Day</label>
+            <input style="width: 45%" type="text" name="form_totalgb"/>
+            <label for="form_retention">Retention Period (in Days)</label>
+            <input style="width: 45%" id="numbers_only" type="text" name="form_retention"/>
+            <label for="form_replication">Replication Factor</label>
+            <input style="width: 45%" id="numbers_only" type="text" name="form_replication"/>
+            <label for="form_searchfactor">Search Factor</label>
+            <input style="width: 45%" id="numbers_only" type="text" name="form_searchfactor"/>
+            <label for="form_totalstorage">Total Storage Required (TBs)</label>
+            <input style="width: 45%" type="text" name="form_totalstorage"/>
+          </form>
+        </row>
+        <row>
+          <style>.btn-primary { margin: 5px 10px 5px 0; }</style>
+          <a href="" id="submitDemand" class="btn btn-primary">Please wait while we calculate infrastructure for Splunk to Provision</a>
+        </row>
+        <row>
+          <table id="spinfraTable">
+            
+          </table>
+        </row>
+      </html>
+    </panel>
+  </row>
+</dashboard>

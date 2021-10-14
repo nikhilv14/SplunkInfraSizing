@@ -1,0 +1,17 @@
+[app/ui]
+version = 6.6.2
+modtime = 1504782631.101528000
+
+[app/launcher]
+version = 6.6.2
+modtime = 1504782631.103512000
+
+[views/demand_management]
+owner = admin
+version = 6.6.2
+modtime = 1515138857.022091000
+
+[views/demands_overview]
+owner = admin
+version = 6.6.2
+modtime = 1509950069.421046000
